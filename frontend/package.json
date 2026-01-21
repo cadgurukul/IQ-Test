@@ -31,5 +31,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://iq-test-zeta.vercel.app/api"
+  "proxy": "https://iq-test-zeta.vercel.app:5000"
 }

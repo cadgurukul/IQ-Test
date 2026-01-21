@@ -12,6 +12,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 const isGoogleConfigured = process.env.REACT_APP_GOOGLE_CLIENT_ID && 
                            process.env.REACT_APP_GOOGLE_CLIENT_ID !== 'your_google_client_id';
 
+                           
 const AppContent = (
   <BrowserRouter>
     <AuthProvider>
