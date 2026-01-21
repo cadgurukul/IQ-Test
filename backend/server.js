@@ -38,6 +38,7 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tests', testRoutes);
