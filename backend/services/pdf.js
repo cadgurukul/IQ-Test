@@ -7,11 +7,16 @@ async function generateReportPDF(reportData, reportType) {
     try {
       const doc = new PDFDocument({ margin: 50 });
       const fileName = `report_${reportData.userId}_${Date.now()}.pdf`;
-      const filePath = path.join(__dirname, '../reports', fileName);
+      
+      // Use /tmp directory for serverless environments (Vercel, AWS Lambda, etc.)
+      const reportsDir = process.env.NODE_ENV === 'production' 
+        ? '/tmp/reports' 
+        : path.join(__dirname, '../reports');
+      const filePath = path.join(reportsDir, fileName);
 
       // Ensure reports directory exists
-      if (!fs.existsSync(path.join(__dirname, '../reports'))) {
-        fs.mkdirSync(path.join(__dirname, '../reports'), { recursive: true });
+      if (!fs.existsSync(reportsDir)) {
+        fs.mkdirSync(reportsDir, { recursive: true });
       }
 
       const writeStream = fs.createWriteStream(filePath);
