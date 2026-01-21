@@ -1,26 +1,58 @@
 const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
+const AWS = require('aws-sdk');
+const stream = require('stream');
+
+// Configure AWS S3
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || 'us-east-1'
+});
 
 async function generateReportPDF(reportData, reportType) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50 });
-      const fileName = `report_${reportData.userId}_${Date.now()}.pdf`;
+      const fileName = `reports/report_${reportData.userId}_${Date.now()}.pdf`;
       
-      // Use /tmp directory for serverless environments (Vercel, AWS Lambda, etc.)
-      const reportsDir = process.env.NODE_ENV === 'production' 
-        ? '/tmp/reports' 
-        : path.join(__dirname, '../reports');
-      const filePath = path.join(reportsDir, fileName);
+      // Create a buffer stream to collect PDF data
+      const bufferStream = new stream.PassThrough();
+      const chunks = [];
+      
+      bufferStream.on('data', (chunk) => chunks.push(chunk));
+      bufferStream.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(chunks);
+          
+          // Upload to S3
+          const uploadParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: fileName,
+            Body: pdfBuffer,
+            ContentType: 'application/pdf',
+            ACL: 'private' // Change to 'public-read' if you want public access
+          };
 
-      // Ensure reports directory exists
-      if (!fs.existsSync(reportsDir)) {
-        fs.mkdirSync(reportsDir, { recursive: true });
-      }
+          const uploadResult = await s3.upload(uploadParams).promise();
+          
+          // Generate signed URL (valid for 7 days)
+          const signedUrl = s3.getSignedUrl('getObject', {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: fileName,
+            Expires: 60 * 60 * 24 * 7 // 7 days
+          });
 
-      const writeStream = fs.createWriteStream(filePath);
-      doc.pipe(writeStream);
+          resolve({ 
+            fileName, 
+            filePath: uploadResult.Location,
+            downloadUrl: signedUrl
+          });
+        } catch (uploadError) {
+          reject(uploadError);
+        }
+      });
+
+      doc.pipe(bufferStream);
 
       // Header
       doc.fontSize(24).fillColor('#2563eb').text('Assessment Report', { align: 'center' });
@@ -75,11 +107,6 @@ async function generateReportPDF(reportData, reportType) {
 
       doc.end();
 
-      writeStream.on('finish', () => {
-        resolve({ fileName, filePath });
-      });
-
-      writeStream.on('error', reject);
     } catch (error) {
       reject(error);
     }

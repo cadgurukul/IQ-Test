@@ -33,7 +33,6 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tests', testRoutes);
@@ -51,7 +50,6 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 });
-
 
 // Start server
 app.listen(PORT, () => {

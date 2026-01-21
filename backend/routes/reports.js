@@ -64,20 +64,21 @@ router.post('/generate', authMiddleware, async (req, res) => {
       recommendations: reportType === 'paid' ? aiAnalysis : null
     };
 
-    const { fileName, filePath } = await generateReportPDF(reportData, reportType);
+    const { fileName, filePath, downloadUrl } = await generateReportPDF(reportData, reportType);
 
-    // Save report to database
+    // Save report to database with S3 URL
     const [result] = await db.query(
       'INSERT INTO reports (attempt_id, user_id, report_type, ai_analysis, pdf_path, is_paid) VALUES (?, ?, ?, ?, ?, ?)',
-      [attemptId, req.user.id, reportType, aiAnalysis, fileName, reportType === 'paid']
+      [attemptId, req.user.id, reportType, aiAnalysis, downloadUrl, reportType === 'paid']
     );
 
-    // Send email
-    await sendReportEmail(attempt.email, attempt.name, reportType, filePath, result.insertId);
+    // Send email with download URL
+    await sendReportEmail(attempt.email, attempt.name, reportType, downloadUrl, result.insertId);
 
     res.json({
       message: 'Report generated successfully',
       reportId: result.insertId,
+      downloadUrl: downloadUrl,
       needsPayment: reportType === 'paid' && !existingReports[0]?.is_paid
     });
   } catch (error) {
