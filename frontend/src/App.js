@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Payment from './pages/Payment';
 import AdminDashboard from './pages/AdminDashboard';
 
+
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
   
